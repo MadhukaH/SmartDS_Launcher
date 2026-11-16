@@ -81,3 +81,4 @@ if ($isccPath) {
     Write-Host " 2. Open '$issScript' in Inno Setup Compiler and click 'Compile' (F9)" -ForegroundColor White
     Write-Host "    OR run: 'iscc.exe ""$issScript""'" -ForegroundColor White
 }
+

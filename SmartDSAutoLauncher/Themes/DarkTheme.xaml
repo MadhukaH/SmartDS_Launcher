@@ -45,3 +45,4 @@
     <SolidColorBrush x:Key="TerminalBorderBrush" Color="#1E2433" />
 
 </ResourceDictionary>
+

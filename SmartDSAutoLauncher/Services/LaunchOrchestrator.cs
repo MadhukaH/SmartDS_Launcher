@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -39,17 +40,32 @@ namespace SmartDSAutoLauncher.Services
             _logService = logService;
         }
 
+        public event EventHandler? InstancesReloaded;
+
         public void Initialize(IEnumerable<ServiceConfig> configs)
         {
+            // Keep live instances (matched by Id) so running processes are never orphaned
+            var previous = _instances.ToList();
             _instances.Clear();
             foreach (var config in configs)
             {
+                var existing = previous.FirstOrDefault(i => i.Config.Id == config.Id);
+                if (existing != null &&
+                    (existing.Status == ServiceStatus.Running || existing.Status == ServiceStatus.Starting))
+                {
+                    // Running: keep process info, but remember the new config for the next start
+                    existing.Config = config;
+                    _instances.Add(existing);
+                    continue;
+                }
+
                 _instances.Add(new ServiceInstance
                 {
                     Config = config,
                     Status = config.IsEnabled ? ServiceStatus.Stopped : ServiceStatus.Disabled
                 });
             }
+            InstancesReloaded?.Invoke(this, EventArgs.Empty);
         }
 
         public async Task StartAllAsync(CancellationToken ct = default)
@@ -216,18 +232,54 @@ namespace SmartDSAutoLauncher.Services
 
                     process.Exited += (s, e) => OnProcessExited(instance, process);
 
-                    if (instance.Config.ReadinessCheck != null &&
-                        instance.Config.ReadinessCheck.Type != ReadinessCheckType.None)
+                    var readiness = instance.Config.ReadinessCheck;
+                    if (readiness != null && readiness.Type != ReadinessCheckType.None)
                     {
                         Log($"Waiting for {instance.Config.Name} to be ready...", LogLevel.Info, "Orchestrator");
-                        var ready = await _readinessCheck.WaitForReadinessAsync(instance.Config.ReadinessCheck, ct);
+                        bool ready;
+                        // Abort the wait immediately if the process dies (e.g. missing script / crash)
+                        using var readyCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                        process.Exited += (s, e) => { try { readyCts.Cancel(); } catch { } };
+                        try
+                        {
+                            ready = process.HasExited ? false
+                                : await _readinessCheck.WaitForReadinessAsync(readiness, readyCts.Token);
+                        }
+                        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+                        {
+                            ready = false;
+                        }
+
+                        if (process.HasExited)
+                        {
+                            var tail = ReadLogTail(instance.Config.LogFilePath, 6);
+                            throw new InvalidOperationException(
+                                $"{instance.Config.Name} exited immediately (exit code {process.ExitCode})." +
+                                (string.IsNullOrEmpty(tail) ? string.Empty : $" Last output:{Environment.NewLine}{tail}"));
+                        }
+
                         if (!ready)
                         {
-                            Log($"{instance.Config.Name} readiness check timed out", LogLevel.Warn, "Orchestrator");
+                            var target = readiness.Type == ReadinessCheckType.TcpPort
+                                ? $"{readiness.Host}:{readiness.Port}"
+                                : readiness.Url;
+                            throw new InvalidOperationException(
+                                $"{instance.Config.Name} is running but {target} did not respond within " +
+                                $"{readiness.TimeoutSeconds}s. Check the readiness port in Startup Sequence matches the port the app listens on.");
                         }
-                        else
+
+                        Log($"{instance.Config.Name} is ready", LogLevel.Success, "Orchestrator");
+                    }
+                    else
+                    {
+                        // No readiness check: still catch an immediate crash
+                        await Task.Delay(1500, ct);
+                        if (process.HasExited)
                         {
-                            Log($"{instance.Config.Name} is ready", LogLevel.Success, "Orchestrator");
+                            var tail = ReadLogTail(instance.Config.LogFilePath, 6);
+                            throw new InvalidOperationException(
+                                $"{instance.Config.Name} exited immediately (exit code {process.ExitCode})." +
+                                (string.IsNullOrEmpty(tail) ? string.Empty : $" Last output:{Environment.NewLine}{tail}"));
                         }
                     }
 
@@ -242,6 +294,13 @@ namespace SmartDSAutoLauncher.Services
                     retryCount++;
                     instance.LastError = ex.Message;
                     Log($"Failed to start {instance.Config.Name}: {ex.Message}", LogLevel.Error, "Orchestrator");
+
+                    // Don't leave a half-started owned process behind (only ever our own PID)
+                    if (instance.ProcessId.HasValue && _processManager.IsProcessRunning(instance.ProcessId.Value))
+                    {
+                        try { await _processManager.StopServiceAsync(instance, CancellationToken.None); } catch { }
+                    }
+                    instance.ProcessId = null;
 
                     if (retryCount < maxRetries)
                     {
@@ -278,12 +337,31 @@ namespace SmartDSAutoLauncher.Services
             }
         }
 
+        private static string ReadLogTail(string? path, int lines)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return string.Empty;
+                using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                using var sr = new StreamReader(fs);
+                var all = sr.ReadToEnd().Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                return string.Join(Environment.NewLine,
+                    all.Skip(Math.Max(0, all.Length - lines)).Select(l => l.TrimEnd('\r')));
+            }
+            catch { return string.Empty; }
+        }
+
         private void OnProcessExited(ServiceInstance instance, Process process)
         {
             if (!instance.IsOwned) return;
-            var exitCode = process.ExitCode;
+            // Give async stdout/stderr handlers a moment to flush to the log file
+            int exitCode;
+            try { exitCode = process.ExitCode; } catch { exitCode = -1; }
             instance.ProcessId = null;
             instance.StopTime = DateTime.Now;
+
+            if (instance.Status == ServiceStatus.Failed)
+                return; // start failure already reported with a detailed message
 
             if (instance.Status != ServiceStatus.Stopping && instance.Status != ServiceStatus.Stopped)
             {

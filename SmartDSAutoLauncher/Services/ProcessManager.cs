@@ -35,6 +35,9 @@ namespace SmartDSAutoLauncher.Services
 
                 if (config.UseShellExecute)
                 {
+                    if (!File.Exists(config.ExecutablePath))
+                        throw new InvalidOperationException(
+                            $"Shortcut/executable not found: {config.ExecutablePath}. Fix the path in Startup Sequence.");
                     psi.FileName = config.ExecutablePath;
                     psi.UseShellExecute = true;
                     psi.WindowStyle = ProcessWindowStyle.Normal;
@@ -55,6 +58,8 @@ namespace SmartDSAutoLauncher.Services
 
                     foreach (var kvp in config.EnvironmentVariables)
                         psi.EnvironmentVariables[kvp.Key] = kvp.Value;
+
+                    ValidateLaunch(config);
                 }
 
                 _logger.LogInformation("Starting service {Name}: {Exe} {Args}",
@@ -105,6 +110,51 @@ namespace SmartDSAutoLauncher.Services
             {
                 _logger.LogError(ex, "Error starting service {Name}", config.Name);
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// Pre-launch diagnostics: gives a clear message instead of a silent node.exe crash.
+        /// </summary>
+        private static void ValidateLaunch(ServiceConfig config)
+        {
+            var workDir = config.WorkingDirectory?.Trim();
+            if (!string.IsNullOrEmpty(workDir) && !Directory.Exists(workDir))
+                throw new InvalidOperationException(
+                    $"Working directory not found: {workDir}. Fix the path in Startup Sequence.");
+
+            // Resolve the executable (absolute path, or via PATH)
+            var exe = config.ExecutablePath.Trim();
+            if (!Path.IsPathRooted(exe))
+            {
+                var found = (Environment.GetEnvironmentVariable("PATH") ?? string.Empty)
+                    .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(p => { try { return Path.Combine(p.Trim('"'), exe); } catch { return string.Empty; } })
+                    .FirstOrDefault(File.Exists);
+                if (found == null)
+                    throw new InvalidOperationException(
+                        $"'{exe}' was not found on PATH. Install Node.js or use the full path to node.exe.");
+            }
+            else if (!File.Exists(exe))
+            {
+                throw new InvalidOperationException($"Executable not found: {exe}");
+            }
+
+            // If the first argument is a script file, make sure it exists relative to the working directory
+            var args = config.Arguments?.Trim() ?? string.Empty;
+            if (args.Length == 0) return;
+            var first = args.StartsWith('"')
+                ? args.Split('"', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? string.Empty
+                : args.Split(' ', StringSplitOptions.RemoveEmptyEntries)[0];
+            var ext = Path.GetExtension(first).ToLowerInvariant();
+            if (ext is ".js" or ".mjs" or ".cjs" or ".ts")
+            {
+                var full = Path.IsPathRooted(first)
+                    ? first
+                    : Path.Combine(string.IsNullOrEmpty(workDir) ? Environment.CurrentDirectory : workDir, first);
+                if (!File.Exists(full))
+                    throw new InvalidOperationException(
+                        $"Entry file not found: {full}. Build the project first (e.g. 'npm run build') or fix the path in Startup Sequence.");
             }
         }
 

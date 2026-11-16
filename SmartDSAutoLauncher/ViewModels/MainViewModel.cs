@@ -90,6 +90,8 @@ namespace SmartDSAutoLauncher.ViewModels
             _orchestrator.ServiceStatusChanged += OnServiceStatusChanged;
             _orchestrator.StepChanged += OnStepChanged;
             _orchestrator.LogMessage += OnLogMessage;
+            _orchestrator.InstancesReloaded += (s, e) =>
+                Application.Current?.Dispatcher.Invoke(InitializeServiceViewModels);
             _logService.NewLogEntry += OnNewLogEntry;
 
             StartAllCommand = new AsyncRelayCommand(StartAllAsync, () => !IsStartupRunning);
@@ -123,8 +125,19 @@ namespace SmartDSAutoLauncher.ViewModels
             try
             {
                 await _orchestrator.StartAllAsync(_cts.Token);
-                StatusMessage = "All services started";
-                _notificationService.NotifySuccess("SmartDS Launcher", "All services started successfully");
+                var failed = ServiceViewModels.Where(s => s.Status == ServiceStatus.Failed).ToList();
+                if (failed.Count == 0)
+                {
+                    StatusMessage = "All services started";
+                    _notificationService.NotifySuccess("SmartDS Launcher", "All services started successfully");
+                }
+                else
+                {
+                    var first = failed[0];
+                    StatusMessage = $"{first.Name} failed: {first.LastError}";
+                    _notificationService.NotifyError("SmartDS Launcher",
+                        $"{failed.Count} service(s) failed. {first.Name}: {first.LastError}");
+                }
             }
             catch (OperationCanceledException) { StatusMessage = "Startup cancelled"; }
             catch (Exception ex)

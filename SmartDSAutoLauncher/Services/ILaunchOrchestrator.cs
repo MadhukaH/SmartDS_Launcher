@@ -13,6 +13,8 @@ namespace SmartDSAutoLauncher.Services
         event EventHandler<ServiceInstance>? ServiceStatusChanged;
         event EventHandler<LaunchStep>? StepChanged;
         event EventHandler<LogEntry>? LogMessage;
+        /// <summary>Raised after Initialize() rebuilds the service list (e.g. after saving the sequence).</summary>
+        event EventHandler? InstancesReloaded;
         Task StartAllAsync(CancellationToken ct = default);
         Task StopAllAsync(CancellationToken ct = default);
         Task RestartAllAsync(CancellationToken ct = default);

@@ -190,3 +190,4 @@ The script will:
    - Start menu and desktop shortcuts
 5. The uninstaller asks whether you wish to remove your user settings in `%LocalAppData%\SmartDSAutoLauncher`.
 6. **Application files in `C:\SmartDS` are completely preserved and never modified or deleted.**
+

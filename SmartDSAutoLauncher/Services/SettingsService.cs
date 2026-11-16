@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
@@ -102,7 +102,7 @@ namespace SmartDSAutoLauncher.Services
                 FrontendHost = "0.0.0.0",
                 FrontendPort = 3001,
                 BackendHost = "localhost",
-                BackendPort = 3000,
+                BackendPort = 5001,
                 MaxLogLines = 2000,
                 Services = new List<ServiceConfig>
                 {
@@ -146,7 +146,7 @@ namespace SmartDSAutoLauncher.Services
                         {
                             Type = ReadinessCheckType.TcpPort,
                             Host = "localhost",
-                            Port = 3000,
+                            Port = 5001,
                             TimeoutSeconds = 30,
                             RetryIntervalMs = 1000
                         }
@@ -220,3 +220,4 @@ namespace SmartDSAutoLauncher.Services
         }
     }
 }
+
