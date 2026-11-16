@@ -1,0 +1,315 @@
+<UserControl x:Class="SmartDSAutoLauncher.Views.SequenceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:SmartDSAutoLauncher.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:SequenceViewModel}">
+
+    <Grid Margin="28,24,28,28">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0" Margin="0,0,0,20">
+            <StackPanel>
+                <TextBlock Text="Startup Sequence Editor" Style="{DynamicResource TitleText}" />
+                <TextBlock Text="Configure launch order, arguments, delays, readiness checks, and failure handling"
+                           Style="{DynamicResource SubTitleText}" Margin="0,4,0,0" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Button Content="Reset Defaults" Style="{DynamicResource SecondaryButton}"
+                        Command="{Binding ResetCommand}" Margin="0,0,10,0" />
+                <Button Content="💾 Save Sequence" Style="{DynamicResource PrimaryButton}"
+                        Command="{Binding SaveCommand}" Width="140" Height="38" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Main Content Area: Left Step List, Right Details Form -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="320" />
+                <ColumnDefinition Width="20" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Left Panel: Steps List & Order Controls -->
+            <Border Grid.Column="0" Style="{DynamicResource ModernCard}" Padding="14">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="Execution Order" Style="{DynamicResource SectionHeading}" Margin="0,0,0,10" />
+
+                    <!-- Step List -->
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Steps}"
+                             SelectedItem="{Binding SelectedStep}"
+                             Background="Transparent" BorderThickness="0"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="Margin" Value="0,0,0,6" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border x:Name="border" Background="{DynamicResource CardBackgroundBrush}"
+                                                    BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+                                                    CornerRadius="6" Padding="10,8">
+                                                <ContentPresenter />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource CardBackgroundHoverBrush}" />
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentLightBrush}" />
+                                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource CardBackgroundHoverBrush}" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <!-- Step checkbox -->
+                                    <CheckBox IsChecked="{Binding IsEnabled}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}" FontSize="13" />
+                                        <TextBlock Text="{Binding DelayAfterStartSeconds, StringFormat='Delay: {0}s'}"
+                                                   Foreground="{DynamicResource TextMutedBrush}" FontSize="11" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="2" Text="⋮" FontSize="16" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <!-- List Buttons: Add, Remove, Move Up, Move Down -->
+                    <Grid Grid.Row="2" Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Content="+ Add" Style="{DynamicResource SmallActionButton}"
+                                Command="{Binding AddStepCommand}" Margin="0,0,4,0" />
+                        <Button Grid.Column="1" Content="- Del" Style="{DynamicResource SmallActionButton}"
+                                Command="{Binding RemoveStepCommand}" Margin="0,0,4,0" />
+                        <Button Grid.Column="2" Content="▲ Up" Style="{DynamicResource SmallActionButton}"
+                                Command="{Binding MoveUpCommand}" Margin="0,0,4,0" />
+                        <Button Grid.Column="3" Content="▼ Down" Style="{DynamicResource SmallActionButton}"
+                                Command="{Binding MoveDownCommand}" />
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- Right Panel: Step Configuration Form -->
+            <Border Grid.Column="2" Style="{DynamicResource ModernCard}" Padding="20">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel DataContext="{Binding SelectedStep}">
+
+                        <TextBlock Text="Step Configuration" Style="{DynamicResource SectionHeading}" Margin="0,0,0,16" />
+
+                        <!-- Service Name & Enabled -->
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Service / Task Name" Style="{DynamicResource LabelText}" />
+                                <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource ModernTextBox}" />
+                            </StackPanel>
+                            <CheckBox Grid.Column="1" Content="Enabled in sequence" IsChecked="{Binding IsEnabled}"
+                                      Style="{DynamicResource ModernCheckBox}" VerticalAlignment="Bottom" Margin="16,0,0,6" />
+                        </Grid>
+
+                        <!-- Description -->
+                        <StackPanel Margin="0,0,0,14">
+                            <TextBlock Text="Description" Style="{DynamicResource LabelText}" />
+                            <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource ModernTextBox}" />
+                        </StackPanel>
+
+                        <!-- Executable / Shortcut Path -->
+                        <StackPanel Margin="0,0,0,14">
+                            <TextBlock Text="Executable Path or Shortcut (.exe, .lnk, .bat)" Style="{DynamicResource LabelText}" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding ExecutablePath, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource ModernTextBox}" />
+                                <Button Grid.Column="1" Content="Browse..." Style="{DynamicResource SecondaryButton}"
+                                        Command="{Binding DataContext.BrowseExeCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        Margin="8,0,0,0" Width="80" />
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Command Line Arguments -->
+                        <StackPanel Margin="0,0,0,14">
+                            <TextBlock Text="Command Arguments" Style="{DynamicResource LabelText}" />
+                            <TextBox Text="{Binding Arguments, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource ModernTextBox}" />
+                        </StackPanel>
+
+                        <!-- Working Directory -->
+                        <StackPanel Margin="0,0,0,14">
+                            <TextBlock Text="Working Directory" Style="{DynamicResource LabelText}" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding WorkingDirectory, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource ModernTextBox}" />
+                                <Button Grid.Column="1" Content="Browse..." Style="{DynamicResource SecondaryButton}"
+                                        Command="{Binding DataContext.BrowseWorkDirCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        Margin="8,0,0,0" Width="80" />
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Execution Options (ShellExecute, WaitForPrevious, Delay) -->
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Delay After Start (seconds)" Style="{DynamicResource LabelText}" />
+                                <TextBox Text="{Binding DelayAfterStartSeconds, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource ModernTextBox}" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" VerticalAlignment="Bottom" Margin="0,0,10,6">
+                                <CheckBox Content="Use Shell Execute (.lnk)" IsChecked="{Binding UseShellExecute}" Style="{DynamicResource ModernCheckBox}" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2" VerticalAlignment="Bottom" Margin="0,0,0,6">
+                                <CheckBox Content="Wait For Previous Step" IsChecked="{Binding WaitForPrevious}" Style="{DynamicResource ModernCheckBox}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Environment Variables -->
+                        <StackPanel Margin="0,0,0,14">
+                            <TextBlock Text="Environment Variables (KEY=VALUE per line)" Style="{DynamicResource LabelText}" />
+                            <TextBox Text="{Binding EnvVarsText, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{DynamicResource ModernTextBox}"
+                                     AcceptsReturn="True" Height="70"
+                                     FontFamily="Consolas, Cascadia Code, Courier New" FontSize="12" />
+                        </StackPanel>
+
+                        <!-- Log File Path -->
+                        <StackPanel Margin="0,0,0,14">
+                            <TextBlock Text="Log File Path (Optional - stdout &amp; stderr appended)" Style="{DynamicResource LabelText}" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding LogFilePath, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource ModernTextBox}" />
+                                <Button Grid.Column="1" Content="Browse..." Style="{DynamicResource SecondaryButton}"
+                                        Command="{Binding DataContext.BrowseLogFileCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        Margin="8,0,0,0" Width="80" />
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Failure Policy & Retries -->
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Failure Policy" Style="{DynamicResource LabelText}" />
+                                <ComboBox SelectedItem="{Binding FailurePolicy}" Style="{DynamicResource ModernComboBox}">
+                                    <ComboBoxItem Content="Continue" />
+                                    <ComboBoxItem Content="Stop" />
+                                    <ComboBoxItem Content="Retry" />
+                                </ComboBox>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Max Retry Attempts" Style="{DynamicResource LabelText}" />
+                                <TextBox Text="{Binding MaxRetries, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource ModernTextBox}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Readiness Check Settings -->
+                        <Border Background="{DynamicResource InputBackgroundBrush}"
+                                BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+                                CornerRadius="8" Padding="14" Margin="0,6,0,0">
+                            <StackPanel>
+                                <CheckBox Content="Enable Service Readiness Check" IsChecked="{Binding HasReadinessCheck}"
+                                          Style="{DynamicResource ModernCheckBox}" FontWeight="SemiBold" Margin="0,0,0,10" />
+
+                                <Grid Visibility="{Binding HasReadinessCheck, Converter={StaticResource BoolToVis}}">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="12" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="12" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Host -->
+                                    <StackPanel Grid.Row="0" Grid.Column="0">
+                                        <TextBlock Text="Target Host" Style="{DynamicResource LabelText}" />
+                                        <TextBox Text="{Binding ReadinessHost, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource ModernTextBox}" />
+                                    </StackPanel>
+
+                                    <!-- Port -->
+                                    <StackPanel Grid.Row="0" Grid.Column="2">
+                                        <TextBlock Text="Port (e.g. 3000 / 3001)" Style="{DynamicResource LabelText}" />
+                                        <TextBox Text="{Binding ReadinessPort, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource ModernTextBox}" />
+                                    </StackPanel>
+
+                                    <!-- Timeout -->
+                                    <StackPanel Grid.Row="0" Grid.Column="4">
+                                        <TextBlock Text="Timeout (seconds)" Style="{DynamicResource LabelText}" />
+                                        <TextBox Text="{Binding ReadinessTimeout, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource ModernTextBox}" />
+                                    </StackPanel>
+
+                                    <!-- HTTP URL -->
+                                    <StackPanel Grid.Row="1" Grid.ColumnSpan="5" Margin="0,10,0,0">
+                                        <TextBlock Text="Optional HTTP Healthcheck URL (e.g. http://localhost:3000/api/health)" Style="{DynamicResource LabelText}" />
+                                        <TextBox Text="{Binding ReadinessUrl, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource ModernTextBox}" />
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- Status Bar -->
+        <TextBlock Grid.Row="2" Text="{Binding StatusMessage}" Foreground="{DynamicResource StatusSuccessBrush}"
+                   FontSize="12" Margin="0,8,0,0" />
+    </Grid>
+</UserControl>

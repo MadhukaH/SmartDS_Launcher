@@ -1,0 +1,113 @@
+<UserControl x:Class="SmartDSAutoLauncher.Views.LogsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:SmartDSAutoLauncher.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:LogsViewModel}">
+
+    <Grid Margin="28,24,28,28">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0" Margin="0,0,0,18">
+            <StackPanel>
+                <TextBlock Text="System Execution Logs" Style="{DynamicResource TitleText}" />
+                <TextBlock Text="Live real-time output and diagnostic traces for orchestrator and services"
+                           Style="{DynamicResource SubTitleText}" Margin="0,4,0,0" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Button Content="📋 Copy All" Style="{DynamicResource SecondaryButton}"
+                        Command="{Binding CopyAllCommand}" Margin="0,0,8,0" />
+                <Button Content="🗑 Clear Logs" Style="{DynamicResource SecondaryButton}"
+                        Command="{Binding ClearCommand}" Margin="0,0,8,0" />
+                <Button Content="📁 Open Logs Folder" Style="{DynamicResource PrimaryButton}"
+                        Command="{Binding OpenFolderCommand}" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Search & Filter Bar -->
+        <Border Grid.Row="1" Style="{DynamicResource ModernCard}" Padding="12" Margin="0,0,0,14">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Search Input -->
+                <Grid Grid.Column="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="🔍" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <TextBox Grid.Column="1" Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{DynamicResource ModernTextBox}"
+                             Tag="Filter logs by keyword..." />
+                </Grid>
+
+                <!-- Minimum Log Level Filter -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Minimum Level:" Style="{DynamicResource LabelText}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                    <ComboBox SelectedValue="{Binding MinLevel}" Width="120" Style="{DynamicResource ModernComboBox}">
+                        <ComboBoxItem Content="Debug" />
+                        <ComboBoxItem Content="Info" />
+                        <ComboBoxItem Content="Warn" />
+                        <ComboBoxItem Content="Error" />
+                        <ComboBoxItem Content="Success" />
+                    </ComboBox>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Live Terminal Window -->
+        <Border Grid.Row="2" Background="{DynamicResource TerminalBackgroundBrush}"
+                BorderBrush="{DynamicResource TerminalBorderBrush}" BorderThickness="1"
+                CornerRadius="8" Padding="14">
+            <ScrollViewer x:Name="LogScrollViewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding FilteredEntries}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100" />
+                                    <ColumnDefinition Width="70" />
+                                    <ColumnDefinition Width="110" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Timestamp -->
+                                <TextBlock Grid.Column="0" Text="{Binding Timestamp}"
+                                           Foreground="{DynamicResource TextMutedBrush}"
+                                           FontFamily="Consolas, Cascadia Code, Courier New" FontSize="12" />
+
+                                <!-- Level Tag -->
+                                <TextBlock Grid.Column="1" Text="{Binding Level}"
+                                           Foreground="{Binding LogLevel, Converter={StaticResource LogLevelToColor}}"
+                                           FontFamily="Consolas, Cascadia Code, Courier New" FontSize="12" FontWeight="SemiBold" />
+
+                                <!-- Source Tag -->
+                                <TextBlock Grid.Column="2" Text="{Binding Source, StringFormat='[{0}]'}"
+                                           Foreground="{DynamicResource AccentLightBrush}"
+                                           FontFamily="Consolas, Cascadia Code, Courier New" FontSize="12" />
+
+                                <!-- Message Text -->
+                                <TextBlock Grid.Column="3" Text="{Binding Message}"
+                                           Foreground="{DynamicResource TerminalTextBrush}"
+                                           FontFamily="Consolas, Cascadia Code, Courier New" FontSize="12"
+                                           TextWrapping="Wrap" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</UserControl>

@@ -1,0 +1,252 @@
+<UserControl x:Class="SmartDSAutoLauncher.Views.DashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:SmartDSAutoLauncher.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:MainViewModel}">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="28,24,28,28">
+
+            <!-- Header & Master Actions -->
+            <Grid Margin="0,0,0,24">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="Service Dashboard" Style="{DynamicResource TitleText}" />
+                    <TextBlock Text="Real-time monitoring and control for SmartDS background stack"
+                               Style="{DynamicResource SubTitleText}" Margin="0,4,0,0" />
+                </StackPanel>
+
+                <!-- Global Action Controls -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="▶ Start All" Style="{DynamicResource SuccessButton}"
+                            Command="{Binding StartAllCommand}" Width="110" Height="38" Margin="0,0,10,0" />
+                    <Button Content="■ Stop All" Style="{DynamicResource DangerButton}"
+                            Command="{Binding StopAllCommand}" Width="100" Height="38" Margin="0,0,10,0" />
+                    <Button Content="🔄 Restart All" Style="{DynamicResource SecondaryButton}"
+                            Command="{Binding RestartAllCommand}" Width="115" Height="38" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Metrics / Overview Cards -->
+            <Grid Margin="0,0,0,24">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Total Services -->
+                <Border Grid.Column="0" Style="{DynamicResource ModernCard}">
+                    <StackPanel>
+                        <TextBlock Text="TOTAL SERVICES" Style="{DynamicResource LabelText}" />
+                        <TextBlock Text="{Binding TotalServices}" FontSize="28" FontWeight="Bold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,2,0,0" />
+                        <TextBlock Text="Configured in sequence" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Running -->
+                <Border Grid.Column="2" Style="{DynamicResource ModernCard}">
+                    <StackPanel>
+                        <TextBlock Text="RUNNING" Style="{DynamicResource LabelText}" Foreground="{DynamicResource StatusSuccessBrush}" />
+                        <TextBlock Text="{Binding RunningServices}" FontSize="28" FontWeight="Bold"
+                                   Foreground="{DynamicResource StatusSuccessBrush}" Margin="0,2,0,0" />
+                        <TextBlock Text="Active &amp; healthy" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Stopped -->
+                <Border Grid.Column="4" Style="{DynamicResource ModernCard}">
+                    <StackPanel>
+                        <TextBlock Text="STOPPED" Style="{DynamicResource LabelText}" Foreground="{DynamicResource StatusStoppedBrush}" />
+                        <TextBlock Text="{Binding StoppedServices}" FontSize="28" FontWeight="Bold"
+                                   Foreground="{DynamicResource StatusStoppedBrush}" Margin="0,2,0,0" />
+                        <TextBlock Text="Idle or offline" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Failed -->
+                <Border Grid.Column="6" Style="{DynamicResource ModernCard}">
+                    <StackPanel>
+                        <TextBlock Text="FAILED" Style="{DynamicResource LabelText}" Foreground="{DynamicResource StatusDangerBrush}" />
+                        <TextBlock Text="{Binding FailedServices}" FontSize="28" FontWeight="Bold"
+                                   Foreground="{DynamicResource StatusDangerBrush}" Margin="0,2,0,0" />
+                        <TextBlock Text="Requires attention" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,0" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Startup Sequence Progress Banner (Active only during startup) -->
+            <Border Style="{DynamicResource ModernCard}" Margin="0,0,0,24"
+                    Background="{DynamicResource CardBackgroundHoverBrush}"
+                    BorderBrush="{DynamicResource AccentLightBrush}"
+                    Visibility="{Binding IsStartupRunning, Converter={StaticResource BoolToVis}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Text="⏳" FontSize="26" VerticalAlignment="Center" Margin="0,0,16,0" />
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="Automated Startup Sequence in Progress" FontWeight="SemiBold" FontSize="14"
+                                   Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock Text="{Binding CurrentStep.Message, FallbackValue='Executing startup sequence...'}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,2,0,6" />
+                        <ProgressBar IsIndeterminate="True" Height="4" Style="{DynamicResource ModernProgressBar}" />
+                    </StackPanel>
+
+                    <!-- Countdown Indicator -->
+                    <Border Grid.Column="2" Background="{DynamicResource AccentGlowBrush}"
+                            CornerRadius="8" Padding="14,8" Margin="16,0,0,0" VerticalAlignment="Center">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="{Binding CurrentStep.CountdownSecondsRemaining, FallbackValue=0, StringFormat='{}{0}s'}"
+                                       FontSize="20" FontWeight="Bold" Foreground="{DynamicResource AccentLightBrush}" HorizontalAlignment="Center" />
+                            <TextBlock Text="Delay remaining" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Services List Header -->
+            <Grid Margin="0,0,0,12">
+                <TextBlock Text="Managed Services" Style="{DynamicResource SectionHeading}" />
+                <TextBlock Text="Click Start / Stop to manage individual services"
+                           Foreground="{DynamicResource TextMutedBrush}" FontSize="12" HorizontalAlignment="Right" />
+            </Grid>
+
+            <!-- Services ItemsControl (Cards for each service) -->
+            <ItemsControl ItemsSource="{Binding ServiceViewModels}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{DynamicResource ModernCardHover}" Margin="0,0,0,14">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Status Indicator Dot / Icon -->
+                                <Border Grid.Column="0" Width="44" Height="44" CornerRadius="10"
+                                        Background="{DynamicResource CardBackgroundBrush}"
+                                        BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+                                        Margin="0,0,18,0" VerticalAlignment="Center">
+                                    <Ellipse Width="14" Height="14"
+                                             Fill="{Binding Status, Converter={StaticResource StatusToColor}}" />
+                                </Border>
+
+                                <!-- Service Details -->
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,12,0" />
+
+                                        <!-- Status Badge -->
+                                        <Border CornerRadius="4" Padding="8,2" Margin="0,0,10,0"
+                                                Background="{DynamicResource CardBackgroundBrush}">
+                                            <TextBlock Text="{Binding Status, Converter={StaticResource StatusToText}}"
+                                                       FontSize="11" FontWeight="SemiBold"
+                                                       Foreground="{Binding Status, Converter={StaticResource StatusToColor}}" />
+                                        </Border>
+
+                                        <!-- PID Pill -->
+                                        <Border CornerRadius="4" Padding="6,2" Margin="0,0,8,0"
+                                                Background="{DynamicResource InputBackgroundBrush}"
+                                                Visibility="{Binding ProcessId, Converter={StaticResource NullToVis}}">
+                                            <TextBlock Text="{Binding ProcessId, StringFormat='PID: {0}'}"
+                                                       FontSize="11" Foreground="{DynamicResource TextMutedBrush}" />
+                                        </Border>
+
+                                        <!-- Uptime Pill -->
+                                        <Border CornerRadius="4" Padding="6,2"
+                                                Background="{DynamicResource InputBackgroundBrush}"
+                                                Visibility="{Binding UptimeText, Converter={StaticResource NullToVis}}">
+                                            <TextBlock Text="{Binding UptimeText, StringFormat='⏱ {0}'}"
+                                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        </Border>
+                                    </StackPanel>
+
+                                    <!-- Description / Executable path -->
+                                    <TextBlock Text="{Binding Description}" FontSize="12" Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,0" />
+
+                                    <!-- Error message banner if failed -->
+                                    <Border Margin="0,8,0,0" Background="{DynamicResource StatusDangerBgBrush}"
+                                            BorderBrush="{DynamicResource StatusDangerBrush}" BorderThickness="1"
+                                            CornerRadius="6" Padding="10,6"
+                                            Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding LastError}" Foreground="#FFCACA" FontSize="11" TextWrapping="Wrap" />
+                                            <Button Grid.Column="1" Content="Copy Error" Style="{DynamicResource SmallActionButton}"
+                                                    Command="{Binding CopyErrorCommand}" Margin="8,0,0,0" />
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Individual Controls -->
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Content="Start" Style="{DynamicResource SuccessButton}"
+                                            Command="{Binding StartCommand}" Width="70" Height="32" Margin="0,0,8,0" />
+                                    <Button Content="Stop" Style="{DynamicResource DangerButton}"
+                                            Command="{Binding StopCommand}" Width="70" Height="32" Margin="0,0,8,0" />
+                                    <Button Content="Restart" Style="{DynamicResource SecondaryButton}"
+                                            Command="{Binding RestartCommand}" Width="70" Height="32" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- Quick Live Log Preview -->
+            <Border Style="{DynamicResource ModernCard}" Margin="0,12,0,0">
+                <StackPanel>
+                    <Grid Margin="0,0,0,10">
+                        <TextBlock Text="Recent Log Activity" Style="{DynamicResource SectionHeading}" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Content="Clear" Style="{DynamicResource SmallActionButton}"
+                                    Command="{Binding ClearLogsCommand}" Margin="0,0,8,0" />
+                            <Button Content="Open Logs Folder" Style="{DynamicResource SmallActionButton}"
+                                    Command="{Binding OpenLogFolderCommand}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Background="{DynamicResource TerminalBackgroundBrush}"
+                            BorderBrush="{DynamicResource TerminalBorderBrush}" BorderThickness="1"
+                            CornerRadius="6" Height="140" Padding="10">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding LogEntries}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Formatted}"
+                                                   Foreground="{Binding LogLevel, Converter={StaticResource LogLevelToColor}}"
+                                                   FontFamily="Consolas, Cascadia Code, Courier New" FontSize="11"
+                                                   Margin="0,1" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
