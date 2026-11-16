@@ -58,6 +58,16 @@ namespace SmartDSAutoLauncher.Services
                     if (Settings.Services == null || Settings.Services.Count == 0)
                         Settings.Services = GetDefaultSettings().Services;
                 }
+
+                // Locked folders: always C:\SmartDS\backend and C:\SmartDS\frontend
+                var corrected = false;
+                foreach (var svc in Settings.Services!)
+                    corrected |= LockedPaths.Enforce(svc);
+                if (corrected)
+                {
+                    _logger.LogWarning("Locked backend/frontend folders were restored to their fixed values");
+                    await SaveAsync();
+                }
                 _logger.LogInformation("Settings loaded from {Path}", SettingsFilePath);
             }
             catch (Exception ex)
@@ -72,6 +82,7 @@ namespace SmartDSAutoLauncher.Services
             try
             {
                 Directory.CreateDirectory(SettingsDirectory);
+                foreach (var svc in Settings.Services) LockedPaths.Enforce(svc);
                 var json = JsonSerializer.Serialize(Settings, JsonOptions);
                 await File.WriteAllTextAsync(SettingsFilePath, json);
                 _logger.LogInformation("Settings saved to {Path}", SettingsFilePath);

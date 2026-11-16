@@ -39,7 +39,18 @@ namespace SmartDSAutoLauncher.ViewModels
         public bool IsEnabled { get => _isEnabled; set => SetProperty(ref _isEnabled, value); }
         public string ExecutablePath { get => _executablePath; set => SetProperty(ref _executablePath, value); }
         public string Arguments { get => _arguments; set => SetProperty(ref _arguments, value); }
-        public string WorkingDirectory { get => _workingDirectory; set => SetProperty(ref _workingDirectory, value); }
+        /// <summary>True for backend/frontend: their working folder is fixed and cannot be edited.</summary>
+        public bool IsWorkingDirectoryLocked => LockedPaths.IsLocked(_originalConfig.Id);
+        public bool IsWorkingDirectoryEditable => !IsWorkingDirectoryLocked;
+        public string WorkingDirectory
+        {
+            get => _workingDirectory;
+            set
+            {
+                if (IsWorkingDirectoryLocked) return; // fixed path, ignore edits
+                SetProperty(ref _workingDirectory, value);
+            }
+        }
         public int DelayAfterStartSeconds { get => _delayAfterStartSeconds; set => SetProperty(ref _delayAfterStartSeconds, value); }
         public bool UseShellExecute { get => _useShellExecute; set => SetProperty(ref _useShellExecute, value); }
         public bool WaitForPrevious { get => _waitForPrevious; set => SetProperty(ref _waitForPrevious, value); }
@@ -60,7 +71,10 @@ namespace SmartDSAutoLauncher.ViewModels
             _originalConfig = config;
             _name = config.Name; _isEnabled = config.IsEnabled;
             _executablePath = config.ExecutablePath; _arguments = config.Arguments;
-            _workingDirectory = config.WorkingDirectory; _delayAfterStartSeconds = config.DelayAfterStartSeconds;
+            _workingDirectory = LockedPaths.TryGetDirectory(config.Id, out var lockedDir)
+                ? lockedDir
+                : config.WorkingDirectory;
+            _delayAfterStartSeconds = config.DelayAfterStartSeconds;
             _useShellExecute = config.UseShellExecute; _waitForPrevious = config.WaitForPrevious;
             _logFilePath = config.LogFilePath; _description = config.Description;
             _failurePolicy = config.FailurePolicy; _maxRetries = config.MaxRetries;
@@ -90,6 +104,7 @@ namespace SmartDSAutoLauncher.ViewModels
                 Type = _readinessType, Host = _readinessHost, Port = _readinessPort,
                 Url = _readinessUrl, TimeoutSeconds = _readinessTimeout
             } : null;
+            LockedPaths.Enforce(c);
             return c;
         }
 
@@ -139,7 +154,7 @@ namespace SmartDSAutoLauncher.ViewModels
             MoveDownCommand = new RelayCommand(MoveDown, () => SelectedStep != null && Steps.IndexOf(SelectedStep) < Steps.Count - 1);
             ResetCommand = new RelayCommand(Reset);
             BrowseExeCommand = new RelayCommand(BrowseExe, () => SelectedStep != null);
-            BrowseWorkDirCommand = new RelayCommand(BrowseWorkDir, () => SelectedStep != null);
+            BrowseWorkDirCommand = new RelayCommand(BrowseWorkDir, () => SelectedStep != null && !SelectedStep.IsWorkingDirectoryLocked);
             BrowseLogFileCommand = new RelayCommand(BrowseLogFile, () => SelectedStep != null);
             LoadFromSettings();
         }
@@ -196,7 +211,7 @@ namespace SmartDSAutoLauncher.ViewModels
 
         private void BrowseWorkDir()
         {
-            if (SelectedStep == null) return;
+            if (SelectedStep == null || SelectedStep.IsWorkingDirectoryLocked) return;
             var d = new Microsoft.Win32.OpenFolderDialog
             {
                 Title = "Select working directory",

@@ -31,6 +31,9 @@ namespace SmartDSAutoLauncher.Services
 
             try
             {
+                // Final safety net: locked folders can never be overridden, whatever the config says
+                LockedPaths.Enforce(config);
+
                 var psi = new ProcessStartInfo();
 
                 if (config.UseShellExecute)

@@ -171,15 +171,22 @@
                             <TextBox Text="{Binding Arguments, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource ModernTextBox}" />
                         </StackPanel>
 
-                        <!-- Working Directory -->
+                        <!-- Working Directory (fixed for backend/frontend) -->
                         <StackPanel Margin="0,0,0,14">
-                            <TextBlock Text="Working Directory" Style="{DynamicResource LabelText}" />
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Working Directory" Style="{DynamicResource LabelText}" />
+                                <TextBlock Text="🔒 Fixed path (cannot be changed)" FontSize="11" Margin="8,0,0,6"
+                                           Foreground="{DynamicResource StatusWarningBrush}"
+                                           Visibility="{Binding IsWorkingDirectoryLocked, Converter={StaticResource BoolToVis}}" />
+                            </StackPanel>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <TextBox Text="{Binding WorkingDirectory, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource ModernTextBox}" />
+                                <TextBox Text="{Binding WorkingDirectory, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{DynamicResource ModernTextBox}"
+                                         IsReadOnly="{Binding IsWorkingDirectoryLocked}" />
                                 <Button Grid.Column="1" Content="Browse..." Style="{DynamicResource SecondaryButton}"
                                         Command="{Binding DataContext.BrowseWorkDirCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         Margin="8,0,0,0" Width="80" />
